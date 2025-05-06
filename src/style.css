@@ -4,5 +4,7 @@
 @tailwind utilities;
 
 body {
-    font-family: 'Roboto', sans-serif;
+    /* font-family: 'ubuntu', sans-serif; */
+    font-family: "Oswald", sans-serif;
+    line-height: 1.625 !important;
 }

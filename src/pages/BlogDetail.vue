@@ -36,8 +36,8 @@ const blog = store.blogs.find(b => b.id === route.params.id) || {}
 <template>
     <div v-if="blog" class="max-w-4xl mx-auto py-12">
         <h1 class="text-4xl font-bold mb-4">{{ blog.title }}</h1>
-        <img :src="blog.imgLink" alt="Blog Cover" class="w-full h-auto mb-4" />
-        <div v-html="blog.content"></div>
+        <img :src="blog.imgLink" :alt="blog.title" class="w-full h-auto mb-4" />
+        <div class="prose">{{ plainContent }}</div>
     </div>
     <div v-else class="text-center text-gray-500">
         Loading blog...
@@ -45,18 +45,16 @@ const blog = store.blogs.find(b => b.id === route.params.id) || {}
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
-import { useBlogStore } from '../store/index.js';
-// import watch from 'vue';
 
 const route = useRoute();
 const blog = ref(null);
 
 onMounted(async () => {
     try {
-        const blogId = route.params.id; // Get the ID from the route
+        const blogId = route.params.id;
         if (!blogId) {
             console.error("Blog ID is undefined");
             return;
@@ -67,8 +65,17 @@ onMounted(async () => {
         console.error("Error fetching blog:", error);
     }
 });
-onMounted(useBlogStore.fetchBlog);
 
-// Watch for route changes and re-fetch the blog
-// watch(() => route.params.id, fetchBlog);
+const plainContent = computed(() => {
+    if (!blog.value || !blog.value.content) return '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = blog.value.content || '';
+    return tempDiv.textContent || tempDiv.innerText || '';
+});
 </script>
+
+<style scoped>
+.prose {
+    white-space: pre-wrap; /* Preserve newlines and spaces */
+}
+</style>
