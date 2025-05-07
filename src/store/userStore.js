@@ -1,64 +1,57 @@
-import { defineStore } from "pinia";
-import axios from "axios";
+import { defineStore } from 'pinia';
+import axios from 'axios';
 
-export const useUserStore = defineStore("user", {
+export const useUserStore = defineStore('user', {
     state: () => ({
-        user: null,
-        token: localStorage.getItem("token") || null,
-        role: localStorage.getItem("role") || null,
+        user: JSON.parse(localStorage.getItem('user')) || null,
+        token: localStorage.getItem('token') || null,
+        isAuthenticated: !!localStorage.getItem('token'),
     }),
 
-    getters: {
-        isAuthenticated: (state) => !!state.token,
-        isAdmin: (state) => state.role === "admin",
-        isManager: (state) => state.role === "manager",
-        userRole: (state) => state.role,
-    },
-
     actions: {
+        // async register(userData) {
+        //     try {
+        //         const response = await axios.post('http://localhost:8000/register', {
+        //             name: userData.username,
+        //             email: userData.email,
+        //             password: userData.password,
+        //         });
+        //         if (response.data.message === 'User Registered Successfully') {
+        //             return true;
+        //         }
+        //         return false;
+        //     } catch (error) {
+        //         console.error('Registration error:', error.response?.data?.message);
+        //         throw error;
+        //     }
+        // },
+
         async login(credentials) {
             try {
-                const response = await axios.post(
-                    "http://localhost:8000/login",
-                    credentials
-                );
-                this.token = response.data.token;
-                this.user = response.data.user;
-                this.role = response.data.user.role;
-
-                localStorage.setItem("token", this.token);
-                localStorage.setItem("role", this.role);
-
-                // Set axios default header for future requests
-                axios.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
-
-                return true;
-            } catch (error) {
-                console.error("Login error:", error);
+                const response = await axios.post('http://localhost:8000/login', credentials);
+                if (response.data.message === 'Login successful') {
+                    this.user = response.data.user;
+                    this.token = response.data.token;
+                    this.isAuthenticated = true;
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    localStorage.setItem('token', response.data.token);
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+                    return true;
+                }
                 return false;
+            } catch (error) {
+                console.error('Login error:', error.response?.data?.message);
+                throw error;
             }
         },
 
-        async register(userData) {
-            try {
-                const response = await axios.post(
-                    "http://localhost:8000/register",
-                    userData
-                );
-                return true;
-            } catch (error) {
-                console.error("Registration error:", error);
-                return false;
-            }
-        },
-
-        async logout() {
-            this.token = null;
+        logout() {
             this.user = null;
-            this.role = null;
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-            delete axios.defaults.headers.common["Authorization"];
+            this.token = null;
+            this.isAuthenticated = false;
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
         },
     },
 });

@@ -4,31 +4,36 @@ import BlogList from "../pages/BlogList.vue";
 import BlogDetail from "../pages/BlogDetail.vue";
 import MyAccount from "../pages/MyAccount.vue";
 import CreatePost from "../pages/CreatePost.vue";
+import LoginForm from "../components/LoginForm.vue";
+import RegisterForm from "../components/RegisterForm.vue";
 
 const routes = [
-    { path: "/", component: BlogList },
+    { path: "/", redirect: "/login" },
+    { path: "/blogs", component: BlogList, meta: { requiresAuth: false } },
     { path: "/blog/:id", component: BlogDetail },
     {
         path: "/my-account",
         name: "MyAccount",
-        component: MyAccount,  // Changed from dynamic import
-        meta: { requiresAuth: true }
+        component: MyAccount,
+        meta: { requiresAuth: true },
     },
     {
         path: "/create-post",
         name: "CreatePost",
         component: CreatePost,
-        meta: { requiresAuth: true }  // Added auth requirement
+        meta: { requiresAuth: true },
     },
     {
         path: "/login",
         name: "Login",
-        component: () => import("../components/LoginForm.vue")
+        component: LoginForm,
+        meta: { hideNavigation: true },
     },
     {
         path: "/register",
         name: "Register",
-        component: () => import("../components/RegisterForm.vue")
+        component: RegisterForm,
+        meta: { hideNavigation: true },
     },
 ];
 
@@ -37,14 +42,12 @@ const router = createRouter({
     routes,
 });
 
-// Navigation guard
 router.beforeEach((to, from, next) => {
     const userStore = useUserStore();
-
     if (to.meta.requiresAuth && !userStore.isAuthenticated) {
         next("/login");
-    } else if (to.meta.requiresAdmin && !userStore.isAdmin) {
-        next("/");
+    } else if (to.path === "/login" && userStore.isAuthenticated) {
+        next("/blogs");
     } else {
         next();
     }

@@ -1,30 +1,30 @@
 <template>
-    <form @submit.prevent="onSubmit" class="space-y-3 border p-6 rounded-lg shadow-lg  shadow-gray-400 bg-white" raised>
+    <form @submit.prevent="onSubmit" class="space-y-3 border p-6 rounded-lg shadow-lg bg-white">
         <div>
-            <label>Title of the post *</label>
-            <input v-model="form.title" type="text" class="input" placeholder="Enter Blog Title"/>
-            <span v-if="v$.title.$error" class="text-red-500 text-xs">Required</span>
+            <label class="block text-sm font-medium text-french-gray">Title of the post *</label>
+            <input v-model="form.title" type="text" class="input" placeholder="Enter Blog Title" />
+            <span v-if="v$.title.$error" class="text-french-red text-xs">Required</span>
         </div>
         <div>
-            <label>Cover Image URL *</label>
+            <label class="block text-sm font-medium text-french-gray">Cover Image URL *</label>
             <input v-model="form.imgLink" type="text" class="input" placeholder="Enter image URL" />
-            <span v-if="v$.imgLink.$error" class="text-red-500 text-xs">Required</span>
+            <span v-if="v$.imgLink.$error" class="text-french-red text-xs">Required</span>
         </div>
         <div>
-            <label>Content *</label>
-            <QuillEditor ref="quillEditor" :options="editorOptions" class="w-full h-30 " />
-            <span v-if="v$.content.$error" class="text-red-500 text-xs">Min 500, Max 5000 words</span>
+            <label class="block text-sm font-medium text-french-gray">Content *</label>
+            <QuillEditor ref="quillEditor" :options="editorOptions" class="w-full h-30" />
+            <span v-if="v$.content.$error" class="text-french-red text-xs">Min 500, Max 5000 words</span>
         </div>
         <div class="flex gap-4">
             <button type="submit" class="btn btn-primary">Save</button>
-            <button type="button" class="btn" @click="cancel">Cancel</button>
+            <button type="button" class="btn" @click="$emit('cancel')">Cancel</button>
         </div>
     </form>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useBlogStore } from '../store/index.js';
+import { ref, watch } from 'vue';
+import { useBlogStore } from '../store/index';
 import { useRouter } from 'vue-router';
 import { useVuelidate } from '@vuelidate/core';
 import { required, helpers } from '@vuelidate/validators';
@@ -32,7 +32,12 @@ import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import { QuillEditor } from '@vueup/vue-quill';
 import { useUserStore } from '../store/userStore';
 
-// Custom validator for word count
+defineProps({
+    editing: Object,
+});
+
+defineEmits(['submit', 'cancel']);
+
 const wordCount = (min, max) => helpers.withParams(
     { type: 'wordCount', min, max },
     (value) => {
@@ -61,6 +66,28 @@ const rules = {
 
 const v$ = useVuelidate(rules, form);
 
+watch(
+    () => props.editing,
+    (newEditing) => {
+        if (newEditing) {
+            form.value.title = newEditing.title;
+            form.value.imgLink = newEditing.imgLink;
+            form.value.content = newEditing.content;
+            if (quillEditor.value) {
+                quillEditor.value.setHTML(newEditing.content);
+            }
+        } else {
+            form.value.title = '';
+            form.value.imgLink = '';
+            form.value.content = '';
+            if (quillEditor.value) {
+                quillEditor.value.setHTML('');
+            }
+        }
+    },
+    { immediate: true }
+);
+
 async function onSubmit() {
     if (!userStore.isAuthenticated) {
         alert('Please login to create a blog post');
@@ -68,14 +95,10 @@ async function onSubmit() {
         return;
     }
 
-    console.log("Starting submission...");
-    // Get plain text from QuillEditor
     const content = quillEditor.value.getText().trim();
-    form.value.content = content; // Store as plain text
+    form.value.content = content;
 
     await v$.value.$validate();
-    console.log("Form Data:", form.value);
-    console.log("Content Field (Plain Text):", form.value.content);
 
     if (!v$.value.$error) {
         const blogData = {
@@ -83,20 +106,10 @@ async function onSubmit() {
             imgLink: form.value.imgLink,
             content: form.value.content,
         };
-        console.log("Data being sent to backend:", blogData);
-        const success = await store.addBlog(blogData);
-        if (success) {
-            router.push('/'); // Direct route, no success message
-        } else {
-            alert("Failed to create the post. Please try again.");
-        }
+        emit('submit', blogData);
     } else {
-        console.error("Validation errors:", v$.value.$errors);
+        console.error('Validation errors:', v$.value.$errors);
     }
-}
-
-function cancel() {
-    router.push('/');
 }
 
 const editorOptions = {
@@ -118,23 +131,17 @@ const editorOptions = {
     width: 100%;
     border-width: 1px;
     border-style: solid;
-    border-color: #d1d5db;
+    border-color: var(--french-gray);
     border-radius: 0.375rem;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
     margin-top: 0.25rem;
     box-sizing: border-box;
 }
 
 .btn {
-    padding-left: 1rem;
-    padding-right: 1rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem 1rem;
     border-radius: 0.375rem;
-    background-color: #e5e7eb;
+    background-color: var(--french-gray);
     transition: background-color 0.2s;
     color: inherit;
     border: none;
@@ -142,15 +149,15 @@ const editorOptions = {
 }
 
 .btn:hover {
-    background-color: #d1d5db;
+    background-color: var(--french-gray-dark);
 }
 
 .btn-primary {
-    background-color: #3b82f6;
+    background-color: var(--french-blue);
     color: #fff;
 }
 
 .btn-primary:hover {
-    background-color: #2563eb;
+    background-color: var(--french-blue-dark);
 }
 </style>

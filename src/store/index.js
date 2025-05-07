@@ -1,45 +1,65 @@
-import { defineStore } from "pinia";
-import axios from "axios";
+import { defineStore } from 'pinia';
+import axios from 'axios';
 
-const defaultBlogs = [
-    // ... (your default blogs array)
-];
-
-export const useBlogStore = defineStore("blog", {
+export const useBlogStore = defineStore('blog', {
     state: () => ({
-        blogs: [], // Initialize with empty array
+        blogs: []
     }),
+
     actions: {
         async fetchBlogs() {
             try {
-                const response = await axios.get("http://localhost:8000/posts");
-                this.blogs = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                console.log("Blogs fetched in store:", this.blogs);
+                const response = await axios.get('http://localhost:8000/posts');
+                this.blogs = response.data;
             } catch (error) {
-                console.error("Error fetching blogs:", error);
-                this.blogs = defaultBlogs; // Fallback to default blogs if fetch fails
+                console.error('Error fetching blogs:', error);
+                throw error;
             }
         },
+
         async addBlog(blog) {
             try {
-                const userStore = useUserStore();
-                if (!userStore.isAuthenticated) {
-                    throw new Error('Authentication required');
+                const response = await axios.post('http://localhost:8000/upPosts', blog);
+                if (response.data.message === "Post created successfully") {
+                    this.blogs.unshift(response.data.data);
+                    return true;
                 }
-
-                console.log("Sending blog to backend:", blog);
-                const response = await axios.post('http://localhost:8000/upPosts', blog, {
-                    headers: {
-                        'Authorization': `Bearer ${userStore.token}`
-                    }
-                });
-                this.blogs.unshift(response.data.data);
-                console.log("Response from backend:", response.data);
-                return true;
+                return false;
             } catch (error) {
                 console.error('Error adding blog:', error);
-                return false;
+                throw error;
             }
         },
-    },
+
+        async updatePost(id, blog) {
+            try {
+                const response = await axios.put(`http://localhost:8000/posts/${id}`, blog);
+                if (response.data.message === "Post Updated") {
+                    const index = this.blogs.findIndex(b => b._id === id);
+                    if (index !== -1) {
+                        this.blogs[index] = { ...this.blogs[index], ...blog };
+                    }
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error updating blog:', error);
+                throw error;
+            }
+        },
+
+        async deletePost(id) {
+            try {
+                const response = await axios.delete(`http://localhost:8000/post/${id}`);
+                if (response.data.message === "Post Deleted") {
+                    this.blogs = this.blogs.filter(blog => blog._id !== id);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error deleting blog:', error);
+                throw error;
+            }
+        }
+    }
 });
